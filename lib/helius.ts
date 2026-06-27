@@ -3,26 +3,38 @@
 
 export interface RawSwap {
   signature: string
-  timestamp: number        // unix seconds
-  source: string           // JUPITER, RAYDIUM, PUMP_FUN, ORCA, etc.
-  tokenMint: string        // the non-SOL token
-  isBuy: boolean           // true = SOL→token, false = token→SOL
-  solAmount: number        // SOL (not lamports)
-  tokenAmount: number      // raw token units
+  timestamp: number
+  source: string
+  tokenMint: string
+  isBuy: boolean
+  solAmount: number
+  tokenAmount: number
 }
 
 const HELIUS_BASE = 'https://api.helius.xyz/v0'
-const LAMPORTS = 1_000_000_000
-const MAX_PAGES = 10        // 10 × 100 = up to 1 000 txns
-const DELAY_MS  = 300       // be polite to the API
+const LAMPORTS    = 1_000_000_000
+const MAX_PAGES   = 10
+const DELAY_MS    = 300
+const SOL_MINT    = 'So11111111111111111111111111111111111111112'
 
-function sleep(ms: number) {
-  return new Promise(r => setTimeout(r, ms))
+function sleep(ms: number) { return new Promise(r => setTimeout(r, ms)) }
+
+function getTokenAmount(
+  entry: { rawTokenAmount?: { tokenAmount: string; decimals: number }; tokenAmount?: number }
+): number {
+  if (entry.rawTokenAmount) {
+    return Number(entry.rawTokenAmount.tokenAmount) /
+      Math.pow(10, entry.rawTokenAmount.decimals)
+  }
+  return entry.tokenAmount ?? 0
 }
 
-// Normalise a single Helius transaction into 0-2 RawSwap records
 function parseTransaction(tx: Record<string, unknown>, walletAddress: string): RawSwap[] {
   if (tx.type !== 'SWAP') return []
+
+  // Only process txns initiated by this wallet (feePayer = the signer)
+  const feePayer = (tx.feePayer as string ?? '').toLowerCase()
+  if (feePayer !== walletAddress.toLowerCase()) return []
 
   const events = tx.events as Record<string, unknown> | undefined
   const swap   = events?.swap as Record<string, unknown> | undefined
@@ -33,80 +45,78 @@ function parseTransaction(tx: Record<string, unknown>, walletAddress: string): R
   const source    = (tx.source as string) ?? 'UNKNOWN'
   const results: RawSwap[] = []
 
-  // Helper: does this account belong to our wallet?
-  const isOurs = (acct: string) =>
-    acct?.toLowerCase() === walletAddress.toLowerCase()
-
-  // ── BUY: SOL → Token ──────────────────────────────────────────────────────
-  const nativeInput = swap.nativeInput as { account: string; amount: string } | null
-  const tokenOutputs = (swap.tokenOutputs ?? []) as Array<{
-    userAccount: string
-    mint: string
+  type TokenEntry = {
+    userAccount?: string
+    mint?: string
     rawTokenAmount?: { tokenAmount: string; decimals: number }
     tokenAmount?: number
-  }>
+  }
 
-  if (nativeInput && isOurs(nativeInput.account) && tokenOutputs.length > 0) {
+  const nativeInput  = swap.nativeInput  as { account?: string; amount?: string } | null | undefined
+  const nativeOutput = swap.nativeOutput as { account?: string; amount?: string } | null | undefined
+  const tokenOutputs = ((swap.tokenOutputs ?? []) as TokenEntry[]).filter(t => t.mint && t.mint !== SOL_MINT)
+  const tokenInputs  = ((swap.tokenInputs  ?? []) as TokenEntry[]).filter(t => t.mint && t.mint !== SOL_MINT)
+
+  // ── BUY: SOL in → Token out ───────────────────────────────────────────────
+  if (nativeInput?.amount && tokenOutputs.length > 0) {
     const solAmount = Number(nativeInput.amount) / LAMPORTS
-    // pick the largest token output (ignore intermediate router tokens)
-    const best = tokenOutputs.reduce((a, b) => {
-      const aAmt = a.rawTokenAmount
-        ? Number(a.rawTokenAmount.tokenAmount)
-        : (a.tokenAmount ?? 0)
-      const bAmt = b.rawTokenAmount
-        ? Number(b.rawTokenAmount.tokenAmount)
-        : (b.tokenAmount ?? 0)
-      return bAmt > aAmt ? b : a
-    })
-    const tokenAmount = best.rawTokenAmount
-      ? Number(best.rawTokenAmount.tokenAmount) /
-        Math.pow(10, best.rawTokenAmount.decimals)
-      : (best.tokenAmount ?? 0)
-
-    if (solAmount > 0 && best.mint) {
-      results.push({
-        signature, timestamp, source,
-        tokenMint: best.mint,
-        isBuy: true,
-        solAmount,
-        tokenAmount,
-      })
+    if (solAmount >= 0.001) {
+      // pick the non-SOL token with largest amount
+      const best = tokenOutputs.reduce((a, b) =>
+        getTokenAmount(b) > getTokenAmount(a) ? b : a
+      )
+      const tokenAmount = getTokenAmount(best)
+      if (best.mint && tokenAmount > 0) {
+        results.push({ signature, timestamp, source, tokenMint: best.mint, isBuy: true, solAmount, tokenAmount })
+      }
     }
   }
 
-  // ── SELL: Token → SOL ─────────────────────────────────────────────────────
-  const nativeOutput = swap.nativeOutput as { account: string; amount: string } | null
-  const tokenInputs = (swap.tokenInputs ?? []) as Array<{
-    userAccount: string
-    mint: string
-    rawTokenAmount?: { tokenAmount: string; decimals: number }
-    tokenAmount?: number
-  }>
-
-  if (nativeOutput && isOurs(nativeOutput.account) && tokenInputs.length > 0) {
+  // ── SELL: Token in → SOL out ──────────────────────────────────────────────
+  if (nativeOutput?.amount && tokenInputs.length > 0) {
     const solAmount = Number(nativeOutput.amount) / LAMPORTS
-    const best = tokenInputs.reduce((a, b) => {
-      const aAmt = a.rawTokenAmount
-        ? Number(a.rawTokenAmount.tokenAmount)
-        : (a.tokenAmount ?? 0)
-      const bAmt = b.rawTokenAmount
-        ? Number(b.rawTokenAmount.tokenAmount)
-        : (b.tokenAmount ?? 0)
-      return bAmt > aAmt ? b : a
-    })
-    const tokenAmount = best.rawTokenAmount
-      ? Number(best.rawTokenAmount.tokenAmount) /
-        Math.pow(10, best.rawTokenAmount.decimals)
-      : (best.tokenAmount ?? 0)
+    if (solAmount >= 0.001) {
+      const best = tokenInputs.reduce((a, b) =>
+        getTokenAmount(b) > getTokenAmount(a) ? b : a
+      )
+      const tokenAmount = getTokenAmount(best)
+      if (best.mint && tokenAmount > 0) {
+        results.push({ signature, timestamp, source, tokenMint: best.mint, isBuy: false, solAmount, tokenAmount })
+      }
+    }
+  }
 
-    if (solAmount > 0 && best.mint) {
-      results.push({
-        signature, timestamp, source,
-        tokenMint: best.mint,
-        isBuy: false,
-        solAmount,
-        tokenAmount,
-      })
+  // ── Fallback: inspect innerSwaps for SOL↔token legs ──────────────────────
+  if (results.length === 0) {
+    type InnerSwap = {
+      tokenInputs?: TokenEntry[]
+      tokenOutputs?: TokenEntry[]
+      nativeInput?: { amount?: string }
+      nativeOutput?: { amount?: string }
+    }
+    const inner = (swap.innerSwaps ?? []) as InnerSwap[]
+    for (const s of inner) {
+      const iTokenOuts = (s.tokenOutputs ?? []).filter((t: TokenEntry) => t.mint && t.mint !== SOL_MINT)
+      const iTokenIns  = (s.tokenInputs  ?? []).filter((t: TokenEntry) => t.mint && t.mint !== SOL_MINT)
+
+      if (s.nativeInput?.amount && iTokenOuts.length > 0) {
+        const sol = Number(s.nativeInput.amount) / LAMPORTS
+        if (sol >= 0.001) {
+          const best = iTokenOuts[0]
+          const amt  = getTokenAmount(best)
+          if (best.mint && amt > 0)
+            results.push({ signature, timestamp, source, tokenMint: best.mint, isBuy: true, solAmount: sol, tokenAmount: amt })
+        }
+      }
+      if (s.nativeOutput?.amount && iTokenIns.length > 0) {
+        const sol = Number(s.nativeOutput.amount) / LAMPORTS
+        if (sol >= 0.001) {
+          const best = iTokenIns[0]
+          const amt  = getTokenAmount(best)
+          if (best.mint && amt > 0)
+            results.push({ signature, timestamp, source, tokenMint: best.mint, isBuy: false, solAmount: sol, tokenAmount: amt })
+        }
+      }
     }
   }
 
@@ -122,9 +132,7 @@ export async function fetchSwaps(
   let totalFetched = 0
 
   for (let page = 0; page < MAX_PAGES; page++) {
-    const url = new URL(
-      `${HELIUS_BASE}/addresses/${walletAddress}/transactions`,
-    )
+    const url = new URL(`${HELIUS_BASE}/addresses/${walletAddress}/transactions`)
     url.searchParams.set('api-key', apiKey)
     url.searchParams.set('type', 'SWAP')
     url.searchParams.set('limit', '100')
@@ -140,16 +148,10 @@ export async function fetchSwaps(
     if (!Array.isArray(txns) || txns.length === 0) break
 
     totalFetched += txns.length
+    for (const tx of txns) allSwaps.push(...parseTransaction(tx, walletAddress))
 
-    for (const tx of txns) {
-      const parsed = parseTransaction(tx, walletAddress)
-      allSwaps.push(...parsed)
-    }
-
-    // pagination cursor = signature of last transaction
     before = txns[txns.length - 1]?.signature as string | undefined
-    if (txns.length < 100) break  // last page
-
+    if (txns.length < 100) break
     if (page < MAX_PAGES - 1) await sleep(DELAY_MS)
   }
 
