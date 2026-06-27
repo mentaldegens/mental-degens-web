@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mental Degens | MDGN — Built on Solana</title>
+  <meta name="description" content="Mental Degens — the most degen community on Solana. No mercy. No fear. Just degen." />
+  <link rel="icon" type="image/png" href="IMG/Favicon.png" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            neon: {
+              green: '#AAFF00',
+              pink:  '#FF2D78',
+              cyan:  '#00F5FF',
+              purple:'#B400FF',
+            },
+            degen: {
+              black:  '#050505',
+              dark:   '#0A0A0A',
+              card:   '#111111',
+              border: '#1E1E1E',
+            }
+          },
+          fontFamily: {
+            display: ['Bebas Neue', 'Impact', 'sans-serif'],
+            body:    ['Space Grotesk', 'system-ui', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-degen-black text-white font-body overflow-x-hidden">
+
+  <!-- WATERMARK BACKGROUND -->
+  <div class="fixed inset-0 pointer-events-none z-0 opacity-[0.025] bg-cover bg-center bg-no-repeat"
+       style="background-image: url('IMG/MDGN Watermark.png'); background-size: 40%;">
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       NAVBAR
+  ═══════════════════════════════════════════ -->
+  <nav id="navbar" class="fixed top-0 left-0 right-0 z-50 transition-all duration-300">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16 lg:h-20">
+
+        <!-- Logo -->
+        <a href="#home" class="flex items-center gap-3 group">
+          <img src="IMG/MDGN logo.png" alt="MDGN Logo" class="h-10 w-10 lg:h-12 lg:w-12 object-contain group-hover:scale-110 transition-transform duration-200" />
+          <span class="font-display text-2xl lg:text-3xl tracking-wider text-white hidden sm:block">
+            MENTAL <span class="text-neon-green">DEGENS</span>
+          </span>
+        </a>
+
+        <!-- Desktop Nav -->
+        <div class="hidden md:flex items-center gap-8">
+          <a href="#home"        class="nav-link">Home</a>
+          <a href="#about"       class="nav-link">About</a>
+          <a href="#tokenomics"  class="nav-link">Tokenomics</a>
+          <a href="#roadmap"     class="nav-link">Roadmap</a>
+        </div>
+
+        <!-- CTA -->
+        <a href="https://t.me/MentalDegens" target="_blank" rel="noopener noreferrer"
+           class="hidden md:inline-flex btn-primary">
+          Join the Cult
+        </a>
+
+        <!-- Mobile hamburger -->
+        <button id="menu-btn" class="md:hidden flex flex-col gap-1.5 p-2" aria-label="Menu">
+          <span class="menu-bar"></span>
+          <span class="menu-bar"></span>
+          <span class="menu-bar"></span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Mobile menu -->
+    <div id="mobile-menu" class="hidden md:hidden bg-degen-dark border-t border-degen-border">
+      <div class="px-4 py-6 flex flex-col gap-4">
+        <a href="#home"       class="nav-link text-lg" onclick="closeMobileMenu()">Home</a>
+        <a href="#about"      class="nav-link text-lg" onclick="closeMobileMenu()">About</a>
+        <a href="#tokenomics" class="nav-link text-lg" onclick="closeMobileMenu()">Tokenomics</a>
+        <a href="#roadmap"    class="nav-link text-lg" onclick="closeMobileMenu()">Roadmap</a>
+        <a href="https://t.me/MentalDegens" target="_blank" rel="noopener noreferrer"
+           class="btn-primary text-center mt-2">Join the Cult</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ═══════════════════════════════════════════
+       HERO
+  ═══════════════════════════════════════════ -->
+  <section id="home" class="relative min-h-screen flex flex-col items-center justify-center overflow-hidden pt-20">
+
+    <!-- Header image -->
+    <div class="absolute inset-0 z-0">
+      <img src="IMG/Mental Degens header.png" alt="Mental Degens" class="w-full h-full object-cover object-center opacity-60" />
+      <div class="absolute inset-0 hero-overlay"></div>
+    </div>
+
+    <!-- Decorative glitch lines -->
+    <div class="absolute inset-0 z-[1] pointer-events-none scanlines"></div>
+
+    <!-- Content -->
+    <div class="relative z-10 text-center max-w-5xl mx-auto px-4 sm:px-6">
+
+      <div class="mb-4 inline-flex items-center gap-2 px-4 py-2 rounded-full border border-neon-green/30 bg-neon-green/5 text-neon-green text-sm font-semibold tracking-widest uppercase">
+        <span class="w-2 h-2 rounded-full bg-neon-green animate-pulse"></span>
+        Built on Solana
+      </div>
+
+      <h1 class="font-display text-6xl sm:text-8xl lg:text-[10rem] leading-none tracking-wider mb-4">
+        <span class="text-white">MENTAL</span><br />
+        <span class="text-neon-green drop-shadow-[0_0_40px_rgba(170,255,0,0.6)]">DEGENS</span>
+      </h1>
+
+      <p class="text-lg sm:text-xl lg:text-2xl text-gray-300 max-w-2xl mx-auto mb-3 font-medium">
+        No risk. No reward. No mercy.
+      </p>
+      <p class="text-base sm:text-lg text-gray-400 max-w-xl mx-auto mb-10">
+        The most unhinged community on Solana. Diamond hands, degen minds, and zero chill.
+      </p>
+
+      <div class="flex flex-col sm:flex-row gap-4 justify-center">
+        <a href="https://t.me/MentalDegens" target="_blank" rel="noopener noreferrer"
+           class="btn-primary text-lg px-10 py-4">
+          Join the Cult
+        </a>
+        <a href="https://x.com/MentalDegen" target="_blank" rel="noopener noreferrer"
+           class="btn-ghost text-lg px-10 py-4">
+          Follow on X
+        </a>
+      </div>
+
+      <!-- Stats bar -->
+      <div class="mt-16 grid grid-cols-3 gap-4 max-w-lg mx-auto">
+        <div class="stat-chip">
+          <span class="stat-value">100%</span>
+          <span class="stat-label">Community</span>
+        </div>
+        <div class="stat-chip">
+          <span class="stat-value">0%</span>
+          <span class="stat-label">Team Tokens</span>
+        </div>
+        <div class="stat-chip">
+          <span class="stat-value">∞</span>
+          <span class="stat-label">Degen Energy</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scroll indicator -->
+    <div class="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-2 text-gray-500 text-xs tracking-widest uppercase animate-bounce">
+      <span>Scroll</span>
+      <svg width="16" height="24" viewBox="0 0 16 24" fill="none">
+        <path d="M8 0v20M1 13l7 7 7-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════
+       ABOUT
+  ═══════════════════════════════════════════ -->
+  <section id="about" class="relative py-24 lg:py-36">
+    <div class="section-glow left"></div>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+      <div class="text-center mb-16">
+        <p class="section-eyebrow">Who We Are</p>
+        <h2 class="section-title">The <span class="text-neon-pink">Story</span></h2>
+      </div>
+
+      <div class="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
+
+        <!-- Text block -->
+        <div class="space-y-6 text-gray-300 text-lg leading-relaxed">
+          <p>
+            Mental Degens wasn't born in a boardroom. It was born at 3 AM, somewhere between a rug pull and a 10x, when a group of unhinged Solana natives decided to stop chasing alpha and start <span class="text-neon-green font-semibold">building it</span>.
+          </p>
+          <p>
+            We are the ones who laugh when the market bleeds. The ones who average down when everyone else paper-hands. The ones who mint at the top, flip at the bottom, and somehow still come out ahead — because we move as one.
+          </p>
+          <p>
+            This isn't just a token. It's a <span class="text-neon-pink font-semibold">mindset</span>. Mental Degens is a community of builders, traders, artists, and believers who understand that the greatest opportunities always look stupid at first.
+          </p>
+          <p>
+            <span class="text-neon-green font-semibold">MDGN</span> is the symbol of that conviction. A community token, owned and driven by the people who dare to be degen in a world that wants them to play it safe.
+          </p>
+
+          <div class="flex flex-col sm:flex-row gap-4 pt-4">
+            <a href="https://x.com/MentalDegen" target="_blank" rel="noopener noreferrer" class="btn-primary">
+              Follow on X
+            </a>
+          </div>
+        </div>
+
+        <!-- Values grid -->
+        <div class="grid grid-cols-2 gap-4">
+          <div class="value-card border-neon-green/20 hover:border-neon-green/60">
+            <div class="value-icon text-neon-green">&#9760;</div>
+            <h3 class="font-display text-2xl text-white tracking-wider">Degen Mindset</h3>
+            <p class="text-gray-400 text-sm mt-1">We embrace risk. We own our decisions. Zero excuses.</p>
+          </div>
+          <div class="value-card border-neon-pink/20 hover:border-neon-pink/60 mt-6">
+            <div class="value-icon text-neon-pink">&#128142;</div>
+            <h3 class="font-display text-2xl text-white tracking-wider">Diamond Hands</h3>
+            <p class="text-gray-400 text-sm mt-1">We hold what we believe in. Conviction over fear.</p>
+          </div>
+          <div class="value-card border-neon-cyan/20 hover:border-neon-cyan/60">
+            <div class="value-icon text-neon-cyan">&#129520;</div>
+            <h3 class="font-display text-2xl text-white tracking-wider">Hopium Fuel</h3>
+            <p class="text-gray-400 text-sm mt-1">We stay bullish when others fold. Hope is our edge.</p>
+          </div>
+          <div class="value-card border-neon-purple/20 hover:border-neon-purple/60 mt-6">
+            <div class="value-icon text-neon-purple">&#127959;</div>
+            <h3 class="font-display text-2xl text-white tracking-wider">Build Together</h3>
+            <p class="text-gray-400 text-sm mt-1">Community first. Always. We build, we win together.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════
+       TOKENOMICS
+  ═══════════════════════════════════════════ -->
+  <section id="tokenomics" class="relative py-24 lg:py-36 bg-degen-dark">
+    <div class="section-glow right"></div>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+      <div class="text-center mb-16">
+        <p class="section-eyebrow">$MDGN Token</p>
+        <h2 class="section-title">Toke<span class="text-neon-green">nomics</span></h2>
+        <p class="text-gray-400 max-w-2xl mx-auto mt-4">
+          $MDGN begins its journey as a pure community token — no VC bags, no insider allocations, no bullshit.
+        </p>
+      </div>
+
+      <!-- Community token notice -->
+      <div class="max-w-3xl mx-auto mb-14">
+        <div class="flex items-start gap-4 p-5 rounded-2xl border border-neon-green/30 bg-neon-green/5">
+          <span class="text-neon-green text-2xl mt-0.5">&#9888;</span>
+          <div>
+            <p class="text-neon-green font-semibold mb-1">Community Token — Early Stage</p>
+            <p class="text-gray-300 text-sm leading-relaxed">
+              $MDGN currently exists as a community-driven token. Final tokenomics, supply details, and distribution specifics will be announced as the project matures. All decisions will be made transparently with the community.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Token info cards -->
+      <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+
+        <div class="token-card">
+          <div class="token-card-icon text-neon-green">&#128200;</div>
+          <h3 class="font-display text-xl tracking-wider text-white mb-1">Total Supply</h3>
+          <p class="text-3xl font-bold text-neon-green mb-2">TBA</p>
+          <p class="text-gray-400 text-sm">The total supply will be announced alongside the official token launch. Details to follow.</p>
+        </div>
+
+        <div class="token-card">
+          <div class="token-card-icon text-neon-pink">&#128293;</div>
+          <h3 class="font-display text-xl tracking-wider text-white mb-1">Team Allocation</h3>
+          <p class="text-3xl font-bold text-neon-pink mb-2">0%</p>
+          <p class="text-gray-400 text-sm">No team tokens. No insider bags. This is a community token, full stop.</p>
+        </div>
+
+        <div class="token-card">
+          <div class="token-card-icon text-neon-cyan">&#128081;</div>
+          <h3 class="font-display text-xl tracking-wider text-white mb-1">Community</h3>
+          <p class="text-3xl font-bold text-neon-cyan mb-2">100%</p>
+          <p class="text-gray-400 text-sm">Every token in existence belongs to the community. That's the whole point.</p>
+        </div>
+
+        <div class="token-card">
+          <div class="token-card-icon text-neon-purple">&#127381;</div>
+          <h3 class="font-display text-xl tracking-wider text-white mb-1">Tax</h3>
+          <p class="text-3xl font-bold text-neon-purple mb-2">TBA</p>
+          <p class="text-gray-400 text-sm">Tax structure and utility details will be revealed in the near future. Stay tuned.</p>
+        </div>
+
+        <div class="token-card">
+          <div class="token-card-icon text-yellow-400">&#128279;</div>
+          <h3 class="font-display text-xl tracking-wider text-white mb-1">Blockchain</h3>
+          <p class="text-3xl font-bold text-yellow-400 mb-2">Solana</p>
+          <p class="text-gray-400 text-sm">Built on Solana for fast, low-cost transactions. Because degens don't have time to wait.</p>
+        </div>
+
+        <div class="token-card">
+          <div class="token-card-icon text-neon-green">&#127919;</div>
+          <h3 class="font-display text-xl tracking-wider text-white mb-1">Utility</h3>
+          <p class="text-3xl font-bold text-neon-green mb-2">TBA</p>
+          <p class="text-gray-400 text-sm">Token utility and ecosystem integrations will be announced progressively as we build.</p>
+        </div>
+
+      </div>
+
+      <!-- Disclaimer -->
+      <p class="text-center text-gray-600 text-xs max-w-2xl mx-auto">
+        $MDGN is a community token. This is not financial advice. Degen responsibly. Always DYOR.
+      </p>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════
+       ROADMAP
+  ═══════════════════════════════════════════ -->
+  <section id="roadmap" class="relative py-24 lg:py-36">
+    <div class="section-glow left"></div>
+
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+
+      <div class="text-center mb-16">
+        <p class="section-eyebrow">The Plan</p>
+        <h2 class="section-title">Road<span class="text-neon-pink">map</span></h2>
+        <p class="text-gray-400 max-w-xl mx-auto mt-4">
+          We move with intention. Here's where we're headed — no fluff, no promises we can't keep.
+        </p>
+      </div>
+
+      <div class="relative">
+        <!-- Vertical line -->
+        <div class="absolute left-8 lg:left-1/2 top-0 bottom-0 w-px bg-gradient-to-b from-neon-green via-neon-pink to-neon-purple opacity-30 lg:-translate-x-px"></div>
+
+        <div class="space-y-12">
+
+          <!-- Phase 1 -->
+          <div class="roadmap-item lg:flex-row">
+            <div class="roadmap-content lg:text-right lg:pr-12">
+              <div class="phase-badge text-neon-green border-neon-green/30 bg-neon-green/5">Phase 01</div>
+              <h3 class="roadmap-title">Genesis</h3>
+              <ul class="roadmap-list">
+                <li>Community formation on X (Twitter)</li>
+                <li>Brand identity &amp; visual assets launch</li>
+                <li>Website &amp; socials go live</li>
+                <li>First 1,000 cult members</li>
+              </ul>
+              <div class="phase-status status-active">In Progress</div>
+            </div>
+            <div class="roadmap-node bg-neon-green shadow-[0_0_20px_rgba(170,255,0,0.6)]"></div>
+            <div class="roadmap-spacer"></div>
+          </div>
+
+          <!-- Phase 2 -->
+          <div class="roadmap-item lg:flex-row-reverse">
+            <div class="roadmap-content lg:text-left lg:pl-12">
+              <div class="phase-badge text-neon-pink border-neon-pink/30 bg-neon-pink/5">Phase 02</div>
+              <h3 class="roadmap-title">Token Launch</h3>
+              <ul class="roadmap-list">
+                <li>$MDGN token deployment on Solana</li>
+                <li>Fair launch — community first</li>
+                <li>Liquidity pool establishment</li>
+                <li>DEX listing (Raydium / Jupiter)</li>
+              </ul>
+              <div class="phase-status status-upcoming">Upcoming</div>
+            </div>
+            <div class="roadmap-node bg-neon-pink shadow-[0_0_20px_rgba(255,45,120,0.6)]"></div>
+            <div class="roadmap-spacer"></div>
+          </div>
+
+          <!-- Phase 3 -->
+          <div class="roadmap-item lg:flex-row">
+            <div class="roadmap-content lg:text-right lg:pr-12">
+              <div class="phase-badge text-neon-cyan border-neon-cyan/30 bg-neon-cyan/5">Phase 03</div>
+              <h3 class="roadmap-title">Community Growth</h3>
+              <ul class="roadmap-list">
+                <li>Holder rewards &amp; community airdrops</li>
+                <li>Strategic partnerships</li>
+                <li>CEX listing pursuit</li>
+                <li>Merch drop for top holders</li>
+              </ul>
+              <div class="phase-status status-upcoming">Upcoming</div>
+            </div>
+            <div class="roadmap-node bg-neon-cyan shadow-[0_0_20px_rgba(0,245,255,0.6)]"></div>
+            <div class="roadmap-spacer"></div>
+          </div>
+
+          <!-- Phase 4 -->
+          <div class="roadmap-item lg:flex-row-reverse">
+            <div class="roadmap-content lg:text-left lg:pl-12">
+              <div class="phase-badge text-neon-purple border-neon-purple/30 bg-neon-purple/5">Phase 04</div>
+              <h3 class="roadmap-title">Ecosystem Expansion</h3>
+              <ul class="roadmap-list">
+                <li>Mental Degens DAO — community governance</li>
+                <li>NFT collection for OG holders</li>
+                <li>Ecosystem utility reveal</li>
+                <li>Details to be announced in the near future</li>
+              </ul>
+              <div class="phase-status status-upcoming">Upcoming</div>
+            </div>
+            <div class="roadmap-node bg-neon-purple shadow-[0_0_20px_rgba(180,0,255,0.6)]"></div>
+            <div class="roadmap-spacer"></div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════
+       CTA BANNER
+  ═══════════════════════════════════════════ -->
+  <section class="relative py-24 bg-degen-dark overflow-hidden">
+    <div class="absolute inset-0 bg-gradient-to-r from-neon-green/5 via-transparent to-neon-pink/5"></div>
+    <div class="max-w-4xl mx-auto text-center px-4 sm:px-6 relative z-10">
+      <h2 class="font-display text-5xl sm:text-7xl lg:text-8xl tracking-wider mb-6">
+        <span class="text-white">STAY</span> <span class="text-neon-green">DEGEN.</span><br />
+        <span class="text-white">BUILD</span> <span class="text-neon-pink">BULLISH.</span>
+      </h2>
+      <p class="text-gray-400 text-lg mb-10 max-w-xl mx-auto">
+        The cult is growing. Are you early, or are you watching from the sidelines?
+      </p>
+      <a href="https://t.me/MentalDegens" target="_blank" rel="noopener noreferrer"
+         class="btn-primary text-xl px-12 py-5 inline-block">
+        Join the Cult →
+      </a>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════
+       FOOTER
+  ═══════════════════════════════════════════ -->
+  <footer class="bg-degen-black border-t border-degen-border py-12">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+      <div class="flex flex-col md:flex-row items-center justify-between gap-8">
+
+        <!-- Logo + tagline -->
+        <div class="flex flex-col items-center md:items-start gap-2">
+          <div class="flex items-center gap-3">
+            <img src="IMG/MDGN logo.png" alt="MDGN" class="h-10 w-10 object-contain" />
+            <span class="font-display text-2xl tracking-wider">MENTAL <span class="text-neon-green">DEGENS</span></span>
+          </div>
+          <p class="text-gray-500 text-sm">No Risk. No Reward. No Mercy.</p>
+        </div>
+
+        <!-- Links -->
+        <div class="flex flex-wrap justify-center gap-6 text-sm text-gray-400">
+          <a href="#home"       class="hover:text-neon-green transition-colors">Home</a>
+          <a href="#about"      class="hover:text-neon-green transition-colors">About</a>
+          <a href="#tokenomics" class="hover:text-neon-green transition-colors">Tokenomics</a>
+          <a href="#roadmap"    class="hover:text-neon-green transition-colors">Roadmap</a>
+        </div>
+
+        <!-- Social -->
+        <div class="flex items-center gap-4">
+          <a href="https://x.com/MentalDegen" target="_blank" rel="noopener noreferrer"
+             class="social-icon" aria-label="X / Twitter">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.747l7.73-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+            </svg>
+          </a>
+          <a href="https://t.me/MentalDegens" target="_blank" rel="noopener noreferrer"
+             class="social-icon" aria-label="Telegram">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
+            </svg>
+          </a>
+          <a href="https://pump.fun/profile/mentaldegens" target="_blank" rel="noopener noreferrer"
+             class="social-icon" aria-label="Pump.fun">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+            </svg>
+          </a>
+        </div>
+      </div>
+
+      <div class="mt-10 pt-8 border-t border-degen-border flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-gray-600">
+        <p>&copy; 2025 Mental Degens. All rights reserved.</p>
+        <p>$MDGN is a community token. Not financial advice. DYOR.</p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="main.js"></script>
+</body>
+</html>
