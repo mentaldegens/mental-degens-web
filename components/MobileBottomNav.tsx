@@ -7,7 +7,7 @@ export default function MobileBottomNav() {
   const path = usePathname()
 
   const isHome  = path === '/'
-  const isScan  = path === '/mental-scan'
+  const isScan  = path === '/degen-diagnosis'
 
   return (
     <div className="md:hidden fixed bottom-0 left-0 right-0 z-50">
@@ -56,7 +56,7 @@ export default function MobileBottomNav() {
         </Link>
 
         {/* Mental Scan — center feature button */}
-        <Link href="/mental-scan" className="flex flex-col items-center gap-1 -mt-5 px-2">
+        <Link href="/degen-diagnosis" className="flex flex-col items-center gap-1 -mt-5 px-2">
           <div
             className="w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-200"
             style={{
@@ -84,7 +84,7 @@ export default function MobileBottomNav() {
             className="text-[10px] font-bold tracking-wider uppercase mt-1"
             style={{ color: isScan ? '#AAFF00' : 'rgba(170,255,0,0.8)' }}
           >
-            Scan
+            Diagnose
           </span>
         </Link>
 

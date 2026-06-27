@@ -6,7 +6,7 @@ const navLinks = [
   { href: '/#about',      label: 'About' },
   { href: '/#tokenomics', label: 'Tokenomics' },
   { href: '/#roadmap',    label: 'Roadmap' },
-  { href: '/mental-scan', label: 'Mental Scan' },
+  { href: '/degen-diagnosis', label: 'Degen Diagnosis' },
 ]
 
 export default function Footer() {

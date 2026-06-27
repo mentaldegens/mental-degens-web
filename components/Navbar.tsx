@@ -5,16 +5,15 @@ import Image from 'next/image'
 import Link from 'next/link'
 
 const navLinks = [
-  { href: '/#home',        label: 'Home' },
-  { href: '/#about',       label: 'About' },
-  { href: '/#tokenomics',  label: 'Tokenomics' },
-  { href: '/#roadmap',     label: 'Roadmap' },
-  { href: '/mental-scan',  label: 'Mental Scan' },
+  { href: '/#home',       label: 'Home' },
+  { href: '/#about',      label: 'About' },
+  { href: '/#tokenomics', label: 'Tokenomics' },
+  { href: '/#roadmap',    label: 'Roadmap' },
+  { href: '/degen-diagnosis', label: 'Degen Diagnosis' },
 ]
 
 export default function Navbar() {
-  const [scrolled, setScrolled]   = useState(false)
-  const [menuOpen, setMenuOpen]   = useState(false)
+  const [scrolled, setScrolled] = useState(false)
   const navRef = useRef<HTMLElement>(null)
 
   useEffect(() => {
@@ -40,21 +39,26 @@ export default function Navbar() {
               width={48} height={48}
               className="h-10 w-10 lg:h-12 lg:w-12 object-contain group-hover:scale-110 transition-transform duration-200"
             />
-            <span className="font-display text-2xl lg:text-3xl tracking-wider text-white hidden sm:block">
+            {/* Show brand name on all sizes */}
+            <span className="font-display text-xl sm:text-2xl lg:text-3xl tracking-wider text-white">
               MENTAL <span className="text-neon-green">DEGENS</span>
             </span>
           </Link>
 
-          {/* Desktop Nav */}
+          {/* Desktop nav links — hidden on mobile (bottom nav handles it) */}
           <div className="hidden md:flex items-center gap-8">
             {navLinks.map(l => (
-              <Link key={l.href} href={l.href} className={`nav-link ${l.href === '/mental-scan' ? 'text-neon-green' : ''}`}>
+              <Link
+                key={l.href}
+                href={l.href}
+                className={`nav-link ${l.href === '/degen-diagnosis' ? 'text-neon-green' : ''}`}
+              >
                 {l.label}
               </Link>
             ))}
           </div>
 
-          {/* CTA */}
+          {/* Desktop CTA only — bottom nav has JOIN on mobile */}
           <a
             href="https://t.me/MentalDegens"
             target="_blank" rel="noopener noreferrer"
@@ -63,14 +67,6 @@ export default function Navbar() {
             Join the Cult
           </a>
 
-          {/* Mobile — show Join the Cult button (bottom nav handles page links) */}
-          <a
-            href="https://t.me/MentalDegens"
-            target="_blank" rel="noopener noreferrer"
-            className="md:hidden btn-primary text-sm px-4 py-2"
-          >
-            Join the Cult
-          </a>
         </div>
       </div>
     </nav>
