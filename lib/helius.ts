@@ -122,6 +122,58 @@ function parseTransaction(tx: Record<string, unknown>, walletAddress: string): R
   return results
 }
 
+// ── Fallback parser for PUMP_AMM and other sources without events.swap ────────
+// Uses tokenTransfers + nativeTransfers directly on the transaction
+function parseFallbackTransfer(tx: Record<string, unknown>, walletAddress: string): RawSwap[] {
+  const feePayer = (tx.feePayer as string ?? '').toLowerCase()
+  if (feePayer !== walletAddress.toLowerCase()) return []
+
+  // Only handle known swap sources that skip events.swap
+  const source = (tx.source as string) ?? ''
+  const type   = (tx.type as string) ?? ''
+  if (type !== 'SWAP') return []
+
+  const wallet = walletAddress.toLowerCase()
+  const results: RawSwap[] = []
+  const timestamp = (tx.timestamp as number) ?? 0
+  const signature = (tx.signature as string) ?? ''
+
+  type NativeTransfer = { fromUserAccount: string; toUserAccount: string; amount: number }
+  type TokenTransfer  = { fromUserAccount: string; toUserAccount: string; tokenAmount: number; mint: string }
+
+  const nativeTransfers = ((tx.nativeTransfers ?? []) as NativeTransfer[])
+  const tokenTransfers  = ((tx.tokenTransfers  ?? []) as TokenTransfer[]).filter(t => t.mint && t.mint !== SOL_MINT)
+
+  // SOL out from wallet = BUY
+  const solOut = nativeTransfers.filter(n => n.fromUserAccount?.toLowerCase() === wallet)
+  const solIn  = nativeTransfers.filter(n => n.toUserAccount?.toLowerCase()   === wallet)
+
+  // Tokens received by wallet = BUY
+  const tokensIn  = tokenTransfers.filter(t => t.toUserAccount?.toLowerCase()   === wallet)
+  // Tokens sent from wallet = SELL
+  const tokensOut = tokenTransfers.filter(t => t.fromUserAccount?.toLowerCase() === wallet)
+
+  if (solOut.length > 0 && tokensIn.length > 0) {
+    const solAmount = solOut.reduce((s, n) => s + n.amount, 0) / LAMPORTS
+    if (solAmount >= 0.001) {
+      const best = tokensIn.reduce((a, b) => b.tokenAmount > a.tokenAmount ? b : a)
+      if (best.tokenAmount > 0)
+        results.push({ signature, timestamp, source, tokenMint: best.mint, isBuy: true, solAmount, tokenAmount: best.tokenAmount })
+    }
+  }
+
+  if (solIn.length > 0 && tokensOut.length > 0) {
+    const solAmount = solIn.reduce((s, n) => s + n.amount, 0) / LAMPORTS
+    if (solAmount >= 0.001) {
+      const best = tokensOut.reduce((a, b) => b.tokenAmount > a.tokenAmount ? b : a)
+      if (best.tokenAmount > 0)
+        results.push({ signature, timestamp, source, tokenMint: best.mint, isBuy: false, solAmount, tokenAmount: best.tokenAmount })
+    }
+  }
+
+  return results
+}
+
 export async function fetchSwaps(
   walletAddress: string,
   apiKey: string,
@@ -146,7 +198,15 @@ export async function fetchSwaps(
     if (!Array.isArray(txns) || txns.length === 0) break
 
     totalFetched += txns.length
-    for (const tx of txns) allSwaps.push(...parseTransaction(tx, walletAddress))
+    for (const tx of txns) {
+      const parsed = parseTransaction(tx, walletAddress)
+      if (parsed.length > 0) {
+        allSwaps.push(...parsed)
+      } else {
+        // fallback for PUMP_AMM and other sources without events.swap
+        allSwaps.push(...parseFallbackTransfer(tx, walletAddress))
+      }
+    }
 
     before = txns[txns.length - 1]?.signature as string | undefined
     if (txns.length < 100) break
