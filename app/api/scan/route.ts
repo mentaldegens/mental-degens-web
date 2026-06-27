@@ -39,8 +39,11 @@ export async function POST(req: NextRequest) {
     const { closedTrades, openPositions } = reconstructTrades(swaps)
 
     if (closedTrades.length < 3) {
+      const openCount = Object.keys(openPositions).length
       return NextResponse.json({
-        error: `Only ${closedTrades.length} closed trade(s) found. Need at least 3 to generate a meaningful Mental Score.`,
+        error: openCount > 0
+          ? `Found ${swaps.length} swaps but only ${closedTrades.length} closed position(s). This wallet has ${openCount} open position(s) that haven't been sold yet. Mental Scan needs at least 3 completed buy→sell cycles. Try a wallet with more trading history.`
+          : `Only ${closedTrades.length} closed trade(s) found. Need at least 3 completed buy→sell cycles. Try a wallet that has been actively trading for longer.`,
       }, { status: 422 })
     }
 
