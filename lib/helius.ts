@@ -30,12 +30,11 @@ function getTokenAmount(
 }
 
 function parseTransaction(tx: Record<string, unknown>, walletAddress: string): RawSwap[] {
-  if (tx.type !== 'SWAP') return []
-
   // Only process txns initiated by this wallet (feePayer = the signer)
   const feePayer = (tx.feePayer as string ?? '').toLowerCase()
   if (feePayer !== walletAddress.toLowerCase()) return []
 
+  // Detect swap by presence of events.swap (catches SWAP, AMM buys/sells, Pump.fun, etc.)
   const events = tx.events as Record<string, unknown> | undefined
   const swap   = events?.swap as Record<string, unknown> | undefined
   if (!swap) return []
@@ -134,7 +133,6 @@ export async function fetchSwaps(
   for (let page = 0; page < MAX_PAGES; page++) {
     const url = new URL(`${HELIUS_BASE}/addresses/${walletAddress}/transactions`)
     url.searchParams.set('api-key', apiKey)
-    url.searchParams.set('type', 'SWAP')
     url.searchParams.set('limit', '100')
     if (before) url.searchParams.set('before', before)
 
