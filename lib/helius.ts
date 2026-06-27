@@ -1,210 +1,249 @@
-// Helius Enhanced Transactions API client
-// Fetches and normalizes parsed swap transactions for a Solana wallet
+// Helius Enhanced Transactions API client — full coverage rewrite
+//
+// Supported DEX sources (via Helius Enhanced Transactions):
+//   events.swap present:  JUPITER, RAYDIUM, ORCA, LIFINITY, METEORA,
+//                         OPENBOOK, ALDRIN, CROPPER, SABER, SERUM, DFLOW
+//   events.swap absent:   PUMP_AMM → fallback via tokenTransfers/nativeTransfers
+//
+// For token→token swaps (USDC base, etc.) we cannot reconstruct SOL P&L
+// without a price oracle, so we skip them and note them in dataQuality.skipped.
 
 export interface RawSwap {
   signature: string
-  timestamp: number
-  source: string
-  tokenMint: string
-  isBuy: boolean
-  solAmount: number
-  tokenAmount: number
+  timestamp:   number   // unix seconds
+  source:      string
+  tokenMint:   string
+  isBuy:       boolean
+  solAmount:   number   // SOL (not lamports)
+  tokenAmount: number   // normalised token units
 }
 
-const HELIUS_BASE = 'https://api.helius.xyz/v0'
-const LAMPORTS    = 1_000_000_000
-const MAX_PAGES   = 10
-const DELAY_MS    = 300
-const SOL_MINT    = 'So11111111111111111111111111111111111111112'
+const HELIUS_BASE  = 'https://api.helius.xyz/v0'
+const LAMPORTS     = 1_000_000_000
+const MAX_PAGES    = 20           // 20 × 100 = up to 2 000 txns
+const DELAY_MS     = 250
+const MIN_SOL      = 0.0001      // lowered from 0.001 — catches small Pump.fun entries
+const SOL_MINT     = 'So11111111111111111111111111111111111111112'
+const WSOL_MINT    = 'So11111111111111111111111111111111111111112' // same as SOL
+const USDC_MINT    = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'
+const USDT_MINT    = 'Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB'
+
+// stablecoins and SOL variants we treat as "base currency" (not the token being traded)
+const BASE_MINTS = new Set([SOL_MINT, WSOL_MINT, USDC_MINT, USDT_MINT])
 
 function sleep(ms: number) { return new Promise(r => setTimeout(r, ms)) }
 
-function getTokenAmount(
-  entry: { rawTokenAmount?: { tokenAmount: string; decimals: number }; tokenAmount?: number }
-): number {
+// Normalise rawTokenAmount or fall back to pre-normalised tokenAmount
+function getAmt(entry: {
+  rawTokenAmount?: { tokenAmount: string; decimals: number }
+  tokenAmount?:    number
+}): number {
   if (entry.rawTokenAmount) {
-    return Number(entry.rawTokenAmount.tokenAmount) /
-      Math.pow(10, entry.rawTokenAmount.decimals)
+    const n = Number(entry.rawTokenAmount.tokenAmount)
+    const d = entry.rawTokenAmount.decimals ?? 0
+    return n / Math.pow(10, d)
   }
   return entry.tokenAmount ?? 0
 }
 
-function parseTransaction(tx: Record<string, unknown>, walletAddress: string): RawSwap[] {
-  // Only process txns initiated by this wallet (feePayer = the signer)
+// ── Primary parser: uses events.swap ─────────────────────────────────────────
+function parseViaEvents(
+  tx: Record<string, unknown>,
+  wallet: string,
+): RawSwap[] {
   const feePayer = (tx.feePayer as string ?? '').toLowerCase()
-  if (feePayer !== walletAddress.toLowerCase()) return []
+  if (feePayer !== wallet.toLowerCase()) return []
 
-  // Detect swap by presence of events.swap (catches SWAP, AMM buys/sells, Pump.fun, etc.)
-  const events = tx.events as Record<string, unknown> | undefined
-  const swap   = events?.swap as Record<string, unknown> | undefined
+  const swap = (tx.events as Record<string, unknown> | undefined)?.swap as
+    Record<string, unknown> | undefined
   if (!swap) return []
 
-  const timestamp = (tx.timestamp as number) ?? 0
-  const signature = (tx.signature as string) ?? ''
-  const source    = (tx.source as string) ?? 'UNKNOWN'
-  const results: RawSwap[] = []
+  const ts  = (tx.timestamp as number) ?? 0
+  const sig = (tx.signature as string) ?? ''
+  const src = (tx.source    as string) ?? 'UNKNOWN'
 
-  type TokenEntry = {
+  type TEntry = {
     userAccount?: string
-    mint?: string
+    mint?:        string
     rawTokenAmount?: { tokenAmount: string; decimals: number }
     tokenAmount?: number
   }
 
-  const nativeInput  = swap.nativeInput  as { account?: string; amount?: string } | null | undefined
-  const nativeOutput = swap.nativeOutput as { account?: string; amount?: string } | null | undefined
-  const tokenOutputs = ((swap.tokenOutputs ?? []) as TokenEntry[]).filter(t => t.mint && t.mint !== SOL_MINT)
-  const tokenInputs  = ((swap.tokenInputs  ?? []) as TokenEntry[]).filter(t => t.mint && t.mint !== SOL_MINT)
+  const natIn  = swap.nativeInput  as { amount?: string } | null
+  const natOut = swap.nativeOutput as { amount?: string } | null
+  // filter to non-base tokens only
+  const tokOut = ((swap.tokenOutputs ?? []) as TEntry[]).filter(t => t.mint && !BASE_MINTS.has(t.mint))
+  const tokIn  = ((swap.tokenInputs  ?? []) as TEntry[]).filter(t => t.mint && !BASE_MINTS.has(t.mint))
 
-  // ── BUY: SOL in → Token out ───────────────────────────────────────────────
-  if (nativeInput?.amount && tokenOutputs.length > 0) {
-    const solAmount = Number(nativeInput.amount) / LAMPORTS
-    if (solAmount >= 0.001) {
-      // pick the non-SOL token with largest amount
-      const best = tokenOutputs.reduce((a, b) =>
-        getTokenAmount(b) > getTokenAmount(a) ? b : a
-      )
-      const tokenAmount = getTokenAmount(best)
-      if (best.mint && tokenAmount > 0) {
-        results.push({ signature, timestamp, source, tokenMint: best.mint, isBuy: true, solAmount, tokenAmount })
-      }
-    }
-  }
-
-  // ── SELL: Token in → SOL out ──────────────────────────────────────────────
-  if (nativeOutput?.amount && tokenInputs.length > 0) {
-    const solAmount = Number(nativeOutput.amount) / LAMPORTS
-    if (solAmount >= 0.001) {
-      const best = tokenInputs.reduce((a, b) =>
-        getTokenAmount(b) > getTokenAmount(a) ? b : a
-      )
-      const tokenAmount = getTokenAmount(best)
-      if (best.mint && tokenAmount > 0) {
-        results.push({ signature, timestamp, source, tokenMint: best.mint, isBuy: false, solAmount, tokenAmount })
-      }
-    }
-  }
-
-  // ── Fallback: inspect innerSwaps for SOL↔token legs ──────────────────────
-  if (results.length === 0) {
-    type InnerSwap = {
-      tokenInputs?: TokenEntry[]
-      tokenOutputs?: TokenEntry[]
-      nativeInput?: { amount?: string }
-      nativeOutput?: { amount?: string }
-    }
-    const inner = (swap.innerSwaps ?? []) as InnerSwap[]
-    for (const s of inner) {
-      const iTokenOuts = (s.tokenOutputs ?? []).filter((t: TokenEntry) => t.mint && t.mint !== SOL_MINT)
-      const iTokenIns  = (s.tokenInputs  ?? []).filter((t: TokenEntry) => t.mint && t.mint !== SOL_MINT)
-
-      if (s.nativeInput?.amount && iTokenOuts.length > 0) {
-        const sol = Number(s.nativeInput.amount) / LAMPORTS
-        if (sol >= 0.001) {
-          const best = iTokenOuts[0]
-          const amt  = getTokenAmount(best)
-          if (best.mint && amt > 0)
-            results.push({ signature, timestamp, source, tokenMint: best.mint, isBuy: true, solAmount: sol, tokenAmount: amt })
-        }
-      }
-      if (s.nativeOutput?.amount && iTokenIns.length > 0) {
-        const sol = Number(s.nativeOutput.amount) / LAMPORTS
-        if (sol >= 0.001) {
-          const best = iTokenIns[0]
-          const amt  = getTokenAmount(best)
-          if (best.mint && amt > 0)
-            results.push({ signature, timestamp, source, tokenMint: best.mint, isBuy: false, solAmount: sol, tokenAmount: amt })
-        }
-      }
-    }
-  }
-
-  return results
-}
-
-// ── Fallback parser for PUMP_AMM and other sources without events.swap ────────
-// Uses tokenTransfers + nativeTransfers directly on the transaction
-function parseFallbackTransfer(tx: Record<string, unknown>, walletAddress: string): RawSwap[] {
-  const feePayer = (tx.feePayer as string ?? '').toLowerCase()
-  if (feePayer !== walletAddress.toLowerCase()) return []
-
-  // Only handle known swap sources that skip events.swap
-  const source = (tx.source as string) ?? ''
-  const type   = (tx.type as string) ?? ''
-  if (type !== 'SWAP') return []
-
-  const wallet = walletAddress.toLowerCase()
   const results: RawSwap[] = []
-  const timestamp = (tx.timestamp as number) ?? 0
-  const signature = (tx.signature as string) ?? ''
 
-  type NativeTransfer = { fromUserAccount: string; toUserAccount: string; amount: number }
-  type TokenTransfer  = { fromUserAccount: string; toUserAccount: string; tokenAmount: number; mint: string }
-
-  const nativeTransfers = ((tx.nativeTransfers ?? []) as NativeTransfer[])
-  const tokenTransfers  = ((tx.tokenTransfers  ?? []) as TokenTransfer[]).filter(t => t.mint && t.mint !== SOL_MINT)
-
-  // SOL out from wallet = BUY
-  const solOut = nativeTransfers.filter(n => n.fromUserAccount?.toLowerCase() === wallet)
-  const solIn  = nativeTransfers.filter(n => n.toUserAccount?.toLowerCase()   === wallet)
-
-  // Tokens received by wallet = BUY
-  const tokensIn  = tokenTransfers.filter(t => t.toUserAccount?.toLowerCase()   === wallet)
-  // Tokens sent from wallet = SELL
-  const tokensOut = tokenTransfers.filter(t => t.fromUserAccount?.toLowerCase() === wallet)
-
-  if (solOut.length > 0 && tokensIn.length > 0) {
-    const solAmount = solOut.reduce((s, n) => s + n.amount, 0) / LAMPORTS
-    if (solAmount >= 0.001) {
-      const best = tokensIn.reduce((a, b) => b.tokenAmount > a.tokenAmount ? b : a)
-      if (best.tokenAmount > 0)
-        results.push({ signature, timestamp, source, tokenMint: best.mint, isBuy: true, solAmount, tokenAmount: best.tokenAmount })
+  // BUY: SOL → token
+  if (natIn?.amount && tokOut.length > 0) {
+    const sol = Number(natIn.amount) / LAMPORTS
+    if (sol >= MIN_SOL) {
+      // Pick token whose SOL-relative value is largest (highest SOL / token ratio = most expensive = most likely the target)
+      // When amounts differ in magnitude we just pick largest raw amount — this correctly identifies the output token
+      const best = tokOut.reduce((a, b) => getAmt(b) > getAmt(a) ? b : a)
+      const amt  = getAmt(best)
+      if (best.mint && amt > 0)
+        results.push({ signature: sig, timestamp: ts, source: src, tokenMint: best.mint, isBuy: true, solAmount: sol, tokenAmount: amt })
     }
   }
 
-  if (solIn.length > 0 && tokensOut.length > 0) {
-    const solAmount = solIn.reduce((s, n) => s + n.amount, 0) / LAMPORTS
-    if (solAmount >= 0.001) {
-      const best = tokensOut.reduce((a, b) => b.tokenAmount > a.tokenAmount ? b : a)
-      if (best.tokenAmount > 0)
-        results.push({ signature, timestamp, source, tokenMint: best.mint, isBuy: false, solAmount, tokenAmount: best.tokenAmount })
+  // SELL: token → SOL
+  if (natOut?.amount && tokIn.length > 0) {
+    const sol = Number(natOut.amount) / LAMPORTS
+    if (sol >= MIN_SOL) {
+      const best = tokIn.reduce((a, b) => getAmt(b) > getAmt(a) ? b : a)
+      const amt  = getAmt(best)
+      if (best.mint && amt > 0)
+        results.push({ signature: sig, timestamp: ts, source: src, tokenMint: best.mint, isBuy: false, solAmount: sol, tokenAmount: amt })
+    }
+  }
+
+  // Fallback to innerSwaps (multi-hop routes like Jupiter splits)
+  if (results.length === 0) {
+    type Inner = {
+      nativeInput?:  { amount?: string }
+      nativeOutput?: { amount?: string }
+      tokenInputs?:  TEntry[]
+      tokenOutputs?: TEntry[]
+    }
+    for (const s of ((swap.innerSwaps ?? []) as Inner[])) {
+      const iOut = (s.tokenOutputs ?? []).filter((t: TEntry) => t.mint && !BASE_MINTS.has(t.mint!))
+      const iIn  = (s.tokenInputs  ?? []).filter((t: TEntry) => t.mint && !BASE_MINTS.has(t.mint!))
+
+      if (s.nativeInput?.amount && iOut.length > 0) {
+        const sol = Number(s.nativeInput.amount) / LAMPORTS
+        if (sol >= MIN_SOL) {
+          const best = iOut[0]; const amt = getAmt(best)
+          if (best.mint && amt > 0)
+            results.push({ signature: sig, timestamp: ts, source: src, tokenMint: best.mint!, isBuy: true, solAmount: sol, tokenAmount: amt })
+        }
+      }
+      if (s.nativeOutput?.amount && iIn.length > 0) {
+        const sol = Number(s.nativeOutput.amount) / LAMPORTS
+        if (sol >= MIN_SOL) {
+          const best = iIn[0]; const amt = getAmt(best)
+          if (best.mint && amt > 0)
+            results.push({ signature: sig, timestamp: ts, source: src, tokenMint: best.mint!, isBuy: false, solAmount: sol, tokenAmount: amt })
+        }
+      }
     }
   }
 
   return results
 }
 
+// ── Fallback parser: uses tokenTransfers + nativeTransfers ────────────────────
+// Covers PUMP_AMM, MOONSHOT, BELIEVE, and other AMMs without events.swap
+function parseViaTransfers(
+  tx: Record<string, unknown>,
+  wallet: string,
+): RawSwap[] {
+  const feePayer = (tx.feePayer as string ?? '').toLowerCase()
+  if (feePayer !== wallet.toLowerCase()) return []
+
+  // Only attempt on transactions that look like swaps
+  const type = (tx.type as string) ?? ''
+  if (type !== 'SWAP' && type !== 'UNKNOWN') return []
+
+  const ts  = (tx.timestamp as number) ?? 0
+  const sig = (tx.signature as string) ?? ''
+  const src = (tx.source    as string) ?? 'UNKNOWN'
+
+  type NTx = { fromUserAccount?: string; toUserAccount?: string; amount?: number }
+  type TTx = { fromUserAccount?: string; toUserAccount?: string; tokenAmount?: number; mint?: string }
+
+  const nt = ((tx.nativeTransfers  ?? []) as NTx[])
+  const tt = ((tx.tokenTransfers   ?? []) as TTx[]).filter(t => t.mint && !BASE_MINTS.has(t.mint))
+
+  const w = wallet.toLowerCase()
+
+  // net SOL change for wallet
+  const solOut = nt.filter(n => n.fromUserAccount?.toLowerCase() === w)
+                   .reduce((s, n) => s + (n.amount ?? 0), 0) / LAMPORTS
+  const solIn  = nt.filter(n => n.toUserAccount?.toLowerCase()  === w)
+                   .reduce((s, n) => s + (n.amount ?? 0), 0) / LAMPORTS
+
+  const tokIn  = tt.filter(t => t.toUserAccount?.toLowerCase()   === w)
+  const tokOut = tt.filter(t => t.fromUserAccount?.toLowerCase() === w)
+
+  const results: RawSwap[] = []
+
+  if (solOut > MIN_SOL && tokIn.length > 0) {
+    const best = tokIn.reduce((a, b) => (b.tokenAmount ?? 0) > (a.tokenAmount ?? 0) ? b : a)
+    if (best.mint && (best.tokenAmount ?? 0) > 0)
+      results.push({ signature: sig, timestamp: ts, source: src, tokenMint: best.mint, isBuy: true,  solAmount: solOut, tokenAmount: best.tokenAmount ?? 0 })
+  }
+
+  if (solIn > MIN_SOL && tokOut.length > 0) {
+    const best = tokOut.reduce((a, b) => (b.tokenAmount ?? 0) > (a.tokenAmount ?? 0) ? b : a)
+    if (best.mint && (best.tokenAmount ?? 0) > 0)
+      results.push({ signature: sig, timestamp: ts, source: src, tokenMint: best.mint, isBuy: false, solAmount: solIn, tokenAmount: best.tokenAmount ?? 0 })
+  }
+
+  return results
+}
+
+// ── Main fetch ────────────────────────────────────────────────────────────────
 export async function fetchSwaps(
   walletAddress: string,
   apiKey: string,
-): Promise<{ swaps: RawSwap[]; totalFetched: number }> {
-  const allSwaps: RawSwap[] = []
+): Promise<{ swaps: RawSwap[]; totalFetched: number; skipped: number }> {
+  const allSwaps:  RawSwap[] = []
+  const seen = new Set<string>()   // deduplicate by signature+side
   let before: string | undefined
   let totalFetched = 0
+  let skipped = 0
 
   for (let page = 0; page < MAX_PAGES; page++) {
     const url = new URL(`${HELIUS_BASE}/addresses/${walletAddress}/transactions`)
     url.searchParams.set('api-key', apiKey)
-    url.searchParams.set('limit', '100')
+    url.searchParams.set('limit',   '100')
     if (before) url.searchParams.set('before', before)
 
-    const res = await fetch(url.toString())
-    if (!res.ok) {
-      if (res.status === 429) throw new Error('Rate limited by Helius. Try again in a moment.')
-      throw new Error(`Helius API error: ${res.status}`)
+    const controller = new AbortController()
+    const timeout    = setTimeout(() => controller.abort(), 8_000)
+
+    let txns: Record<string, unknown>[]
+    try {
+      const res = await fetch(url.toString(), { signal: controller.signal })
+      clearTimeout(timeout)
+      if (!res.ok) {
+        if (res.status === 429) throw new Error('Rate limited by Helius — try again in a moment.')
+        throw new Error(`Helius API error: ${res.status}`)
+      }
+      txns = (await res.json()) as Record<string, unknown>[]
+    } catch (err: unknown) {
+      clearTimeout(timeout)
+      if ((err as Error).name === 'AbortError') throw new Error('Helius request timed out. Try again.')
+      throw err
     }
 
-    const txns = (await res.json()) as Record<string, unknown>[]
     if (!Array.isArray(txns) || txns.length === 0) break
-
     totalFetched += txns.length
+
     for (const tx of txns) {
-      const parsed = parseTransaction(tx, walletAddress)
-      if (parsed.length > 0) {
-        allSwaps.push(...parsed)
-      } else {
-        // fallback for PUMP_AMM and other sources without events.swap
-        allSwaps.push(...parseFallbackTransfer(tx, walletAddress))
+      // Primary: events.swap
+      let parsed = parseViaEvents(tx, walletAddress)
+
+      // Fallback: tokenTransfers (PUMP_AMM, MOONSHOT, etc.)
+      if (parsed.length === 0) {
+        parsed = parseViaTransfers(tx, walletAddress)
+        if (parsed.length === 0) {
+          // If it looks like a swap but we couldn't parse it, count as skipped
+          if ((tx.type as string) === 'SWAP') skipped++
+        }
+      }
+
+      for (const s of parsed) {
+        // Deduplicate: same signature + same direction should appear once
+        const key = `${s.signature}:${s.isBuy}:${s.tokenMint}`
+        if (!seen.has(key)) {
+          seen.add(key)
+          allSwaps.push(s)
+        }
       }
     }
 
@@ -213,5 +252,5 @@ export async function fetchSwaps(
     if (page < MAX_PAGES - 1) await sleep(DELAY_MS)
   }
 
-  return { swaps: allSwaps, totalFetched }
+  return { swaps: allSwaps, totalFetched, skipped }
 }

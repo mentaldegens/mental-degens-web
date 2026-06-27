@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { Bebas_Neue, Space_Grotesk } from 'next/font/google'
+import MobileBottomNav from '@/components/MobileBottomNav'
 import './globals.css'
 
 const bebasNeue = Bebas_Neue({
@@ -40,7 +41,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             backgroundRepeat: 'repeat',
           }}
         />
-        {children}
+        {/* Extra bottom padding on mobile so content clears the bottom nav */}
+        <div className="pb-20 md:pb-0">
+          {children}
+        </div>
+        <MobileBottomNav />
       </body>
     </html>
   )

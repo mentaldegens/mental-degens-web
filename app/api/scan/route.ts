@@ -3,13 +3,13 @@ import { fetchSwaps } from '@/lib/helius'
 import { reconstructTrades, holdTimeBuckets, cumulativePnl } from '@/lib/analysis'
 import { calcSubScores, calcFinalScore, getArchetype, generateInsights } from '@/lib/scoring'
 
-// Simple in-memory cache — avoids hammering Helius for the same wallet
-const cache = new Map<string, { data: unknown; ts: number }>()
-const CACHE_TTL = 5 * 60 * 1000  // 5 minutes
+// Note: in-memory cache is not used on Netlify serverless (context is ephemeral).
+// Response caching is handled at the CDN/edge layer via Cache-Control headers.
 
 export async function POST(req: NextRequest) {
   try {
-    const { wallet } = await req.json() as { wallet: string }
+    const body = await req.json() as { wallet?: string }
+    const wallet = (body.wallet ?? '').trim()
 
     if (!wallet || wallet.length < 32 || wallet.length > 44) {
       return NextResponse.json({ error: 'Invalid wallet address.' }, { status: 400 })
@@ -17,49 +17,44 @@ export async function POST(req: NextRequest) {
 
     const apiKey = process.env.HELIUS_API_KEY
     if (!apiKey) {
-      return NextResponse.json({ error: 'Helius API key not configured.' }, { status: 500 })
+      return NextResponse.json({ error: 'Server configuration error.' }, { status: 500 })
     }
 
-    // cache hit?
-    const cached = cache.get(wallet)
-    if (cached && Date.now() - cached.ts < CACHE_TTL) {
-      return NextResponse.json(cached.data)
-    }
-
-    // 1. Fetch raw swaps from Helius
-    const { swaps, totalFetched } = await fetchSwaps(wallet, apiKey)
+    // Fetch raw swaps from Helius (up to 2 000 transactions)
+    const { swaps, totalFetched, skipped } = await fetchSwaps(wallet, apiKey)
 
     if (swaps.length === 0) {
       return NextResponse.json({
-        error: 'No swap transactions found for this wallet. Make sure it has traded on Solana DEXes.',
+        error: 'No swap transactions found for this wallet. Make sure it has traded on Solana DEXes (Jupiter, Raydium, Pump.fun, etc.).',
       }, { status: 404 })
     }
 
-    // 2. Reconstruct positions → closed trades
+    // Reconstruct closed positions via FIFO
     const { closedTrades, openPositions } = reconstructTrades(swaps)
 
     if (closedTrades.length < 3) {
       const openCount = Object.keys(openPositions).length
-      return NextResponse.json({
-        error: openCount > 0
-          ? `Found ${swaps.length} swaps but only ${closedTrades.length} closed position(s). This wallet has ${openCount} open position(s) that haven't been sold yet. Mental Scan needs at least 3 completed buy→sell cycles. Try a wallet with more trading history.`
-          : `Only ${closedTrades.length} closed trade(s) found. Need at least 3 completed buy→sell cycles. Try a wallet that has been actively trading for longer.`,
-      }, { status: 422 })
+      const msg = openCount > 0
+        ? `Found ${swaps.length} swaps but only ${closedTrades.length} closed position(s). This wallet has ${openCount} open position(s) that haven't been sold yet. Mental Scan needs at least 3 completed buy→sell cycles.`
+        : `Only ${closedTrades.length} closed trade(s) found. Need at least 3 completed buy→sell cycles to generate a meaningful Mental Score.`
+      return NextResponse.json({ error: msg }, { status: 422 })
     }
 
-    // 3. Calculate metrics & scores
-    const subScores   = calcSubScores(closedTrades)
-    const finalScore  = calcFinalScore(subScores)
-    const archetype   = getArchetype(finalScore)
-    const insights    = generateInsights(closedTrades, subScores, finalScore)
+    // Compute scores
+    const subScores  = calcSubScores(closedTrades)
+    const finalScore = calcFinalScore(subScores)
+    const archetype  = getArchetype(finalScore)
+    const insights   = generateInsights(closedTrades, subScores, finalScore)
 
-    // 4. Summary stats
-    const wins      = closedTrades.filter(t => t.isWin)
-    const losses    = closedTrades.filter(t => !t.isWin)
-    const totalPnl  = closedTrades.reduce((s, t) => s + t.pnlSol, 0)
+    // Summary stats
+    const wins  = closedTrades.filter(t => t.isWin)
+    const losses = closedTrades.filter(t => !t.isWin)
+    const totalPnl = closedTrades.reduce((s, t) => s + t.pnlSol, 0)
     const avgHoldMs = closedTrades.reduce((s, t) => s + t.holdMs, 0) / closedTrades.length
-    const bestTrade = closedTrades.reduce((best, t) => t.pnlSol > best.pnlSol ? t : best, closedTrades[0])
-    const worstTrade = closedTrades.reduce((worst, t) => t.pnlSol < worst.pnlSol ? t : worst, closedTrades[0])
+    const best  = closedTrades.reduce((b, t) => t.pnlSol > b.pnlSol ? t : b, closedTrades[0])
+    const worst = closedTrades.reduce((b, t) => t.pnlSol < b.pnlSol ? t : b, closedTrades[0])
+
+    const round = (n: number, d = 4) => Math.round(n * 10 ** d) / 10 ** d
 
     const result = {
       wallet,
@@ -71,33 +66,35 @@ export async function POST(req: NextRequest) {
         totalTrades:   closedTrades.length,
         openPositions: Object.keys(openPositions).length,
         winRate:       Math.round((wins.length / closedTrades.length) * 100),
-        totalPnlSol:   Math.round(totalPnl * 1000) / 1000,
+        totalPnlSol:   round(totalPnl),
         avgHoldMs:     Math.round(avgHoldMs),
-        bestTradePnl:  Math.round(bestTrade.pnlSol * 1000) / 1000,
-        worstTradePnl: Math.round(worstTrade.pnlSol * 1000) / 1000,
-        avgWinSol:     wins.length   > 0 ? Math.round(wins.reduce((s, t)   => s + t.pnlSol, 0) / wins.length   * 1000) / 1000 : 0,
-        avgLossSol:    losses.length > 0 ? Math.round(losses.reduce((s, t) => s + t.pnlSol, 0) / losses.length * 1000) / 1000 : 0,
+        bestTradePnl:  round(best.pnlSol),
+        worstTradePnl: round(worst.pnlSol),
+        avgWinSol:     wins.length   > 0 ? round(wins.reduce((s, t)   => s + t.pnlSol, 0) / wins.length)   : 0,
+        avgLossSol:    losses.length > 0 ? round(losses.reduce((s, t) => s + t.pnlSol, 0) / losses.length) : 0,
       },
       charts: {
         holdBuckets:   holdTimeBuckets(closedTrades),
         cumulativePnl: cumulativePnl(closedTrades),
         radarData: [
-          { metric: 'Impulse\nControl',    score: subScores.impulseControl   },
-          { metric: 'Diamond\nHands',      score: subScores.diamondHands     },
-          { metric: 'Win Rate\nQuality',   score: subScores.winRateQuality   },
-          { metric: 'Risk\nMgmt',          score: subScores.riskManagement   },
-          { metric: 'Emotional\nControl',  score: subScores.emotionalControl },
+          { metric: 'Impulse\nControl',   score: subScores.impulseControl   },
+          { metric: 'Diamond\nHands',     score: subScores.diamondHands     },
+          { metric: 'Win Rate\nQuality',  score: subScores.winRateQuality   },
+          { metric: 'Risk\nMgmt',         score: subScores.riskManagement   },
+          { metric: 'Emotional\nControl', score: subScores.emotionalControl },
         ],
       },
       dataQuality: {
         transactionsFetched: totalFetched,
         swapsFound:          swaps.length,
         closedPositions:     closedTrades.length,
+        skippedSwaps:        skipped,
       },
     }
 
-    cache.set(wallet, { data: result, ts: Date.now() })
-    return NextResponse.json(result)
+    return NextResponse.json(result, {
+      headers: { 'Cache-Control': 'no-store' },
+    })
 
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unexpected error'

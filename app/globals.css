@@ -306,6 +306,9 @@ html { scroll-behavior: smooth; }
   background: rgba(170,255,0,0.08);
 }
 
+/* ── Mobile safe area (iPhone home bar) ── */
+.pb-safe { padding-bottom: max(0.75rem, env(safe-area-inset-bottom)); }
+
 /* ── Fade-up animation ── */
 @keyframes fadeUp {
   from { opacity: 0; transform: translateY(24px); }

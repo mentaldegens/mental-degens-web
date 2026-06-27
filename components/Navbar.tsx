@@ -63,44 +63,16 @@ export default function Navbar() {
             Join the Cult
           </a>
 
-          {/* Mobile hamburger */}
-          <button
-            id="menu-btn"
-            onClick={() => setMenuOpen(o => !o)}
-            className="md:hidden flex flex-col gap-1.5 p-2"
-            aria-label="Menu"
+          {/* Mobile — show Join the Cult button (bottom nav handles page links) */}
+          <a
+            href="https://t.me/MentalDegens"
+            target="_blank" rel="noopener noreferrer"
+            className="md:hidden btn-primary text-sm px-4 py-2"
           >
-            <span className="menu-bar" />
-            <span className="menu-bar" />
-            <span className="menu-bar" />
-          </button>
+            Join the Cult
+          </a>
         </div>
       </div>
-
-      {/* Mobile menu */}
-      {menuOpen && (
-        <div className="md:hidden bg-degen-dark border-t border-degen-border">
-          <div className="px-4 py-6 flex flex-col gap-4">
-            {navLinks.map(l => (
-              <Link
-                key={l.href}
-                href={l.href}
-                className={`nav-link text-lg ${l.href === '/mental-scan' ? 'text-neon-green' : ''}`}
-                onClick={() => setMenuOpen(false)}
-              >
-                {l.label}
-              </Link>
-            ))}
-            <a
-              href="https://t.me/MentalDegens"
-              target="_blank" rel="noopener noreferrer"
-              className="btn-primary text-center mt-2"
-            >
-              Join the Cult
-            </a>
-          </div>
-        </div>
-      )}
     </nav>
   )
 }
