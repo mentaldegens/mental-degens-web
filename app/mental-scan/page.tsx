@@ -14,7 +14,7 @@ import ShareModal from '@/components/mental-scan/ShareModal'
 type ScanResult = {
   wallet: string
   mentalDegenScore: number
-  archetype: { name: string; emoji: string; description: string; color: string }
+  archetype: { name: string; icon: string; description: string; color: string }
   subScores: {
     impulseControl: number
     diamondHands: number
@@ -22,7 +22,7 @@ type ScanResult = {
     riskManagement: number
     emotionalControl: number
   }
-  insights: string[]
+  insights: Array<{ type: 'danger' | 'warning' | 'good' | 'info'; text: string }>
   stats: {
     totalTrades: number
     openPositions: number
@@ -127,12 +127,21 @@ export default function MentalScanPage() {
             {status === 'idle' && (
               <div className="grid grid-cols-3 gap-3 mt-6 text-center">
                 {[
-                  { icon: '🔍', label: 'Real on-chain data', sub: 'Helius Enhanced API' },
-                  { icon: '🧮', label: 'FIFO reconstruction', sub: 'Professional grade' },
-                  { icon: '🔒', label: 'Read-only analysis', sub: 'No wallet connect needed' },
+                  {
+                    svg: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#AAFF00" strokeWidth="1.5" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>,
+                    label: 'Real on-chain data', sub: 'Helius Enhanced API',
+                  },
+                  {
+                    svg: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#AAFF00" strokeWidth="1.5" strokeLinecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>,
+                    label: 'FIFO reconstruction', sub: 'Professional grade',
+                  },
+                  {
+                    svg: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#AAFF00" strokeWidth="1.5" strokeLinecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>,
+                    label: 'Read-only analysis', sub: 'No wallet connect needed',
+                  },
                 ].map(f => (
                   <div key={f.label} className="p-3 rounded-xl border border-degen-border bg-degen-dark/40">
-                    <div className="text-xl mb-1">{f.icon}</div>
+                    <div className="flex justify-center mb-2">{f.svg}</div>
                     <div className="text-white text-xs font-semibold">{f.label}</div>
                     <div className="text-gray-600 text-xs">{f.sub}</div>
                   </div>
@@ -147,7 +156,14 @@ export default function MentalScanPage() {
           {/* ── Error ── */}
           {status === 'error' && (
             <div className="max-w-xl mx-auto text-center py-12">
-              <div className="text-4xl mb-4">😵</div>
+              <div className="flex justify-center mb-4">
+                <div className="w-14 h-14 rounded-2xl border border-neon-pink/30 bg-neon-pink/10 flex items-center justify-center">
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#FF2D78" strokeWidth="1.5" strokeLinecap="round">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                    <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                  </svg>
+                </div>
+              </div>
               <p className="text-neon-pink font-semibold mb-2">Scan failed</p>
               <p className="text-gray-400 text-sm mb-6">{error}</p>
               <button onClick={() => setStatus('idle')} className="btn-ghost px-8 py-3">

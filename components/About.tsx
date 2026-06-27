@@ -1,16 +1,39 @@
-const values = [
-  { icon: '☠️', label: 'Degen Mindset',  desc: 'We embrace risk. We own our decisions. Zero excuses.',       color: 'neon-green',  mt: false },
-  { icon: '💎', label: 'Diamond Hands',  desc: 'We hold what we believe in. Conviction over fear.',         color: 'neon-pink',   mt: true  },
-  { icon: '💉', label: 'Hopium Fuel',    desc: 'We stay bullish when others fold. Hope is our edge.',       color: 'neon-cyan',   mt: false },
-  { icon: '🏗️', label: 'Build Together', desc: 'Community first. Always. We build, we win together.',      color: 'neon-purple', mt: true  },
-]
+import { SkullIcon, DiamondIcon, ZapIcon, BuildIcon } from './Icons'
 
-const colorMap: Record<string, string> = {
-  'neon-green':  'border-[#AAFF00]/20 hover:border-[#AAFF00]/60 text-[#AAFF00]',
-  'neon-pink':   'border-[#FF2D78]/20 hover:border-[#FF2D78]/60 text-[#FF2D78]',
-  'neon-cyan':   'border-[#00F5FF]/20 hover:border-[#00F5FF]/60 text-[#00F5FF]',
-  'neon-purple': 'border-[#B400FF]/20 hover:border-[#B400FF]/60 text-[#B400FF]',
-}
+const values = [
+  {
+    Icon: SkullIcon,
+    label: 'Degen Mindset',
+    desc: 'We embrace risk. We own our decisions. Zero excuses.',
+    color: '#AAFF00',
+    border: 'border-[#AAFF00]/20 hover:border-[#AAFF00]/60',
+    mt: false,
+  },
+  {
+    Icon: DiamondIcon,
+    label: 'Diamond Hands',
+    desc: 'We hold what we believe in. Conviction over fear.',
+    color: '#FF2D78',
+    border: 'border-[#FF2D78]/20 hover:border-[#FF2D78]/60',
+    mt: true,
+  },
+  {
+    Icon: ZapIcon,
+    label: 'Hopium Fuel',
+    desc: 'We stay bullish when others fold. Hope is our edge.',
+    color: '#00F5FF',
+    border: 'border-[#00F5FF]/20 hover:border-[#00F5FF]/60',
+    mt: false,
+  },
+  {
+    Icon: BuildIcon,
+    label: 'Build Together',
+    desc: 'Community first. Always. We build, we win together.',
+    color: '#B400FF',
+    border: 'border-[#B400FF]/20 hover:border-[#B400FF]/60',
+    mt: true,
+  },
+]
 
 export default function About() {
   return (
@@ -24,7 +47,6 @@ export default function About() {
         </div>
 
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
-          {/* Text */}
           <div className="space-y-6 text-gray-300 text-lg leading-relaxed">
             <p>
               Mental Degens wasn&apos;t born in a boardroom. It was born at 3 AM, somewhere between a rug pull and a 10x, when a group of unhinged Solana natives decided to stop chasing alpha and start{' '}
@@ -47,14 +69,12 @@ export default function About() {
             </div>
           </div>
 
-          {/* Values grid */}
           <div className="grid grid-cols-2 gap-4">
             {values.map(v => (
-              <div
-                key={v.label}
-                className={`value-card ${colorMap[v.color]} ${v.mt ? 'mt-6' : ''}`}
-              >
-                <span className={`value-icon ${colorMap[v.color].split(' ')[2]}`}>{v.icon}</span>
+              <div key={v.label} className={`value-card ${v.border} ${v.mt ? 'mt-6' : ''}`}>
+                <div className="value-icon">
+                  <v.Icon size={28} color={v.color} />
+                </div>
                 <h3 className="font-display text-2xl text-white tracking-wider">{v.label}</h3>
                 <p className="text-gray-400 text-sm mt-1">{v.desc}</p>
               </div>
