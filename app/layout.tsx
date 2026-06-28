@@ -24,6 +24,20 @@ export const metadata: Metadata = {
     title: 'Mental Degens | MDGN',
     description: 'No risk. No reward. No mercy. The most unhinged community on Solana.',
     siteName: 'Mental Degens',
+    images: [
+      {
+        url: 'https://mentaldegens.xyz/IMG/header.png',
+        width: 1200,
+        height: 630,
+        alt: 'Mental Degens — Built on Solana',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Mental Degens | MDGN',
+    description: 'No risk. No reward. No mercy. The most unhinged community on Solana.',
+    images: ['https://mentaldegens.xyz/IMG/header.png'],
   },
 }
 
