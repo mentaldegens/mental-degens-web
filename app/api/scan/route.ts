@@ -35,8 +35,8 @@ export async function POST(req: NextRequest) {
     if (closedTrades.length < 3) {
       const openCount = Object.keys(openPositions).length
       const msg = openCount > 0
-        ? `Found ${swaps.length} swaps but only ${closedTrades.length} closed position(s). This wallet has ${openCount} open position(s) that haven't been sold yet. Mental Scan needs at least 3 completed buy→sell cycles.`
-        : `Only ${closedTrades.length} closed trade(s) found. Need at least 3 completed buy→sell cycles to generate a meaningful Mental Score.`
+        ? `Found ${swaps.length} swaps but only ${closedTrades.length} closed position(s). This wallet has ${openCount} open position(s) that haven't been sold yet. Degen Diagnosis requires at least 3 completed buy→sell cycles to generate a patient report.`
+        : `Only ${closedTrades.length} closed trade(s) found. Degen Diagnosis requires at least 3 completed buy→sell cycles. Dr. H. Opium needs more data to make a proper diagnosis.`
       return NextResponse.json({ error: msg }, { status: 422 })
     }
 

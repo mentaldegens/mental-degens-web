@@ -15,7 +15,7 @@ export function DegenRadar({ data }: { data: RadarPoint[] }) {
   return (
     <div className="token-card mb-6">
       <h3 className="font-display text-xl tracking-wider text-white mb-4">
-        Behavioral <span className="text-neon-green">Radar</span>
+        Psychological <span className="text-neon-green">Profile</span>
       </h3>
       <ResponsiveContainer width="100%" height={280}>
         <RadarChart data={data}>
@@ -42,9 +42,9 @@ export function HoldHistogram({ data }: { data: HoldBucket[] }) {
   return (
     <div className="token-card mb-6">
       <h3 className="font-display text-xl tracking-wider text-white mb-1">
-        Hold Time <span className="text-neon-pink">Distribution</span>
+        Patience <span className="text-neon-pink">Analysis</span>
       </h3>
-      <p className="text-gray-500 text-xs mb-4">How long you held before closing each trade</p>
+      <p className="text-gray-500 text-xs mb-4">Hold duration per closed position — key impulse control indicator</p>
       <ResponsiveContainer width="100%" height={220}>
         <BarChart data={data} barCategoryGap="20%">
           <CartesianGrid vertical={false} stroke="rgba(255,255,255,0.04)" />
@@ -72,9 +72,9 @@ export function CumPnlChart({ data }: { data: PnlPoint[] }) {
   return (
     <div className="token-card mb-6">
       <h3 className="font-display text-xl tracking-wider text-white mb-1">
-        Cumulative <span className="text-neon-cyan">P&L</span>
+        Account <span className="text-neon-cyan">Trauma</span> History
       </h3>
-      <p className="text-gray-500 text-xs mb-4">Realised SOL profit/loss over all closed trades</p>
+      <p className="text-gray-500 text-xs mb-4">Cumulative realised P&L across all closed positions — SOL basis</p>
       <ResponsiveContainer width="100%" height={220}>
         <LineChart data={data}>
           <CartesianGrid stroke="rgba(255,255,255,0.04)" />

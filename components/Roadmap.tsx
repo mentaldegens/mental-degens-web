@@ -2,12 +2,12 @@ const phases = [
   {
     num: '01', label: 'Genesis', color: 'neon-green', hex: '#AAFF00', glow: 'rgba(170,255,0,0.6)',
     status: 'active', reverse: false,
-    items: ['Community formation on X (Twitter)', 'Brand identity & visual assets launch', 'Website & socials go live', 'First 1,000 cult members'],
+    items: ['Community formation on X (Twitter)', 'Brand identity & visual assets launch', 'Website & socials go live', 'First 1,000 cult members', 'Degen Diagnosis launch — Dr. H. Opium psychiatric patient reports'],
   },
   {
     num: '02', label: 'Token Launch', color: 'neon-pink', hex: '#FF2D78', glow: 'rgba(255,45,120,0.6)',
     status: 'upcoming', reverse: true,
-    items: ['$MDGN token deployment on Solana', 'Fair launch — community first', 'Liquidity pool establishment', 'DEX listing (Raydium / Jupiter)'],
+    items: ['$MDGN token deployment on Solana', 'Fair launch — community first', 'Liquidity pool establishment', 'DEX listing (Raydium / Jupiter)', 'Degen Diagnosis: Case Archive — search & retrieve past patient reports by Case No.'],
   },
   {
     num: '03', label: 'Community Growth', color: 'neon-cyan', hex: '#00F5FF', glow: 'rgba(0,245,255,0.6)',

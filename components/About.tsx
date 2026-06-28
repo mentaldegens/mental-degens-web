@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { SkullIcon, DiamondIcon, ZapIcon, BuildIcon } from './Icons'
 
 const values = [
@@ -62,10 +63,17 @@ export default function About() {
             <p>
               <span className="text-neon-green font-semibold">MDGN</span> is the symbol of that conviction. A community token, owned and driven by the people who dare to be degen in a world that wants them to play it safe.
             </p>
+            <p>
+              And because every degen deserves to know exactly what&apos;s wrong with them, we built{' '}
+              <span className="text-neon-pink font-semibold">Degen Diagnosis</span> — the world&apos;s first on-chain psychiatric evaluation tool. Dr. H. Opium, M.D. (Maximum Degen) analyses your full Solana trading history and delivers an official patient report: your diagnosis code, your archetype, and the brutal clinical truth about your trading psychology. No mercy. Fully on-chain.
+            </p>
             <div className="flex flex-col sm:flex-row gap-4 pt-4">
               <a href="https://x.com/MentalDegen" target="_blank" rel="noopener noreferrer" className="btn-primary">
                 Follow on X
               </a>
+              <Link href="/degen-diagnosis" className="btn-ghost">
+                Get Diagnosed
+              </Link>
             </div>
           </div>
 
