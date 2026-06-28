@@ -61,12 +61,29 @@ export default function ShareModal({ score, archetype, wallet, stats, subScores,
   }
 
   const shareText =
-    `🏥 Degen Asylum — Patient Report\n\n` +
+    `Degen Asylum — Patient Report\n\n` +
     `Score: ${score}/100 | ${archetype.name}\n` +
     `Diagnosis: ${archetype.diagnosisCode}\n` +
     `"${archetype.roast}"\n\n` +
-    `Get diagnosed at mentaldegens.xyz/degen-diagnosis\n\n` +
+    `Get diagnosed → mentaldegens.xyz/degen-diagnosis\n\n` +
     `#MentalDegens #DegenDiagnosis #MDGN #Solana`
+
+  // Web Share API on mobile — far more reliable than target="_blank" in modals
+  const handleShareX = async () => {
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        await navigator.share({ text: shareText })
+        return
+      } catch {
+        // user cancelled — fall through to URL approach
+      }
+    }
+    window.open(
+      `https://x.com/intent/tweet?text=${encodeURIComponent(shareText)}`,
+      '_blank',
+      'noopener,noreferrer',
+    )
+  }
 
   const c = archetype.color
 
@@ -289,16 +306,15 @@ export default function ShareModal({ score, archetype, wallet, stats, subScores,
             }
             Download Report
           </button>
-          <a
-            href={`https://x.com/intent/tweet?text=${encodeURIComponent(shareText)}`}
-            target="_blank" rel="noopener noreferrer"
+          <button
+            onClick={handleShareX}
             className="btn-ghost flex-1 py-3 flex items-center justify-center gap-2"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
               <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.747l7.73-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
             </svg>
             Share Diagnosis
-          </a>
+          </button>
         </div>
       </div>
     </div>
